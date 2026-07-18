@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Mic, Upload, Activity, MapPin, Users, AlertTriangle, Play, Loader2 } from 'lucide-react';
+import { Mic, Upload, Activity, MapPin, Users, AlertTriangle, Play, Loader2, Clock } from 'lucide-react';
 
 function App() {
   const [file, setFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('callHistory') || '[]'));
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,12 +28,19 @@ function App() {
     formData.append("audio_file", file);
 
     try {
-      const response = await axios.post("http://localhost:8000/analyze-call", formData, {
+      const response = await axios.post("https://emergency-call-intelligence.onrender.com/analyze-call", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
       setResult(response.data);
+      
+      const newHistory = [
+        { ...response.data, timestamp: new Date().toLocaleTimeString() },
+        ...history
+      ].slice(0, 5);
+      setHistory(newHistory);
+      localStorage.setItem('callHistory', JSON.stringify(newHistory));
     } catch (err) {
       console.error(err);
       setError("Failed to analyze the call. Ensure the backend is running.");
@@ -148,7 +156,35 @@ function App() {
                   <div className={`w-2 h-2 rounded-full ${result ? 'bg-green-400' : 'bg-gray-600'}`}></div>
                   <span className="text-sm">XGBoost Severity Scoring</span>
                 </li>
-             </ul>
+              </ul>
+          </div>
+
+          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl">
+             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+               <Clock size={16} />
+               Recent Calls
+             </h3>
+             {history.length === 0 ? (
+               <p className="text-sm text-gray-500">No recent emergency calls.</p>
+             ) : (
+               <ul className="space-y-3">
+                 {history.map((item, idx) => (
+                   <li 
+                     key={idx} 
+                     onClick={() => setResult(item)}
+                     className="p-3 bg-gray-800 rounded-lg border border-gray-700 flex justify-between items-center cursor-pointer hover:border-gray-500 transition-colors"
+                   >
+                     <div>
+                       <p className="text-sm font-semibold text-gray-200">{item.emergency_type}</p>
+                       <p className="text-xs text-gray-400 truncate w-32">{item.location}</p>
+                     </div>
+                     <div className={`px-2 py-1 rounded text-xs font-bold border ${getSeverityColor(item.severity_score)} ${getSeverityBg(item.severity_score)}`}>
+                       {item.severity_score}
+                     </div>
+                   </li>
+                 ))}
+               </ul>
+             )}
           </div>
         </div>
 
