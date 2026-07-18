@@ -81,8 +81,25 @@ async def analyze_call(audio_file: UploadFile = File(...)):
                 )
             )
             
-            extracted_data = json.loads(response.text)
+            raw_text = response.text.strip()
+            # Clean up markdown if present
+            if raw_text.startswith("```"):
+                raw_text = raw_text.split("\\n", 1)[-1]
+                if raw_text.endswith("```"):
+                    raw_text = raw_text.rsplit("\\n", 1)[0]
             
+            try:
+                extracted_data = json.loads(raw_text)
+            except json.JSONDecodeError as e:
+                print(f"Failed to parse JSON: {raw_text}")
+                # Fallback if AI hallucinates bad JSON
+                extracted_data = {
+                    "transcript": "Audio analyzed, but AI returned malformed data.",
+                    "emergency_type": "Other",
+                    "location": "Unknown",
+                    "victims": 0,
+                    "urgency_level": 3
+                }
         else:
             # Fallback mock data
             extracted_data = {
