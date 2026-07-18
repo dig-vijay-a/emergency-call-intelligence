@@ -1,0 +1,20 @@
+# Node modules
+frontend/node_modules/
+frontend/dist/
+
+# Python Virtual Environment
+backend/venv/
+backend/__pycache__/
+backend/.pytest_cache/
+
+# Environment variables
+.env
+backend/.env
+frontend/.env
+
+# Models
+backend/models/
+
+# OS files
+.DS_Store
+Thumbs.db
